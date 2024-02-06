@@ -1,4 +1,4 @@
-package jr.brian.issadetonationapp.ui.theme
+package jr.brian.issadetonationapp
 
 import android.annotation.SuppressLint
 import android.content.Context
@@ -19,22 +19,21 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.debugInspectorInfo
 import androidx.compose.ui.unit.dp
 
-fun generateCode(length: Int): String {
-    val characters = listOf(
+fun Int.generateCodeWithThisLength(): String {
+    // Omits the letter 'O' and number '0' as they look too similar
+    // Adds extra 7 in its place
+    val characters = mutableListOf(
         "A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "M",
-        "N", "O", "P", "Q", "R", "S", "T", "U", "V", "W", "X", "Y", "Z",
-        "0", "1", "2", "3", "4", "5", "6", "7", "8", "9",
-        // Extra numbers so there is total of 26 letters and 26 numbers
-        "0", "1", "2", "3", "4", "5", "6", "7", "8", "9",
-        "0", "1", "2", "7", "8", "9"
+        "N", "P", "Q", "R", "S", "T", "U", "V", "W", "X", "Y", "Z",
+        "1", "2", "3", "4", "5", "6", "7", "7", "8", "9",
+        // Extra numbers so there is total of 25 letters and 25 numbers
+        "1", "2", "3", "4", "5", "6", "7", "7", "8", "9",
+        "1", "2", "3", "7", "8", "9"
     )
-
     var str = ""
-
-    for (i in 1..length) {
+    for (i in 1..this) {
         str += characters.random()
     }
-
     return str
 }
 
@@ -48,7 +47,7 @@ fun Context.showLongToast(msg: String) {
     Toast.makeText(this, msg, Toast.LENGTH_LONG).show()
 }
 
-fun Context.createPlayer(media: Int) : MediaPlayer {
+fun Context.createPlayer(media: Int): MediaPlayer {
     return MediaPlayer.create(this, media)
 }
 
@@ -58,12 +57,12 @@ fun MediaPlayer.prepareForPlayback(action: () -> Unit) {
     action()
 }
 
-fun borderStroke(color: Color): BorderStroke {
+fun Color.borderStroke(): BorderStroke {
     return BorderStroke(
         width = 2.dp,
         brush = Brush.horizontalGradient(
-            0.0f to color,
-            1.0f to color,
+            0.0f to this,
+            1.0f to this,
             startX = 0.0f,
             endX = 100.0f
         )
@@ -93,3 +92,24 @@ fun Modifier.shake(enabled: Boolean, onAnimationFinish: () -> Unit) = composed(
         properties["enabled"] = enabled
     }
 )
+
+fun MediaPlayer.handleMusicPlayback(
+    timeElapsed: Int,
+    onPreparedForFirstPlayBack: () -> Unit,
+    onPreparedForSecondPlayBack: () -> Unit
+) {
+    when (timeElapsed) {
+        45 -> {
+            prepareForPlayback {
+                onPreparedForFirstPlayBack()
+            }
+        }
+
+        60 -> {
+            prepareForPlayback {
+                onPreparedForSecondPlayBack()
+            }
+            MainActivity.vm.setIsOver(true)
+        }
+    }
+}
