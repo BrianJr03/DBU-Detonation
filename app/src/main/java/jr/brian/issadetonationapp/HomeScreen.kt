@@ -18,8 +18,9 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.Button
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextField
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.collectAsState
@@ -59,8 +60,8 @@ fun HomeScreen(context: Context, code: String) {
             val isOver = MainActivity.vm.isOver.collectAsState()
             val isReset = MainActivity.vm.isReset.collectAsState()
             val timeElapsed = MainActivity.vm.timeElapsed.collectAsState()
-            val guessedWrong = MainActivity.vm.guessedWrong.collectAsState()
-            val guessedCorrect = MainActivity.vm.guessedCorrect.collectAsState()
+            val isIncorrectCode = MainActivity.vm.isIncorrectCode.collectAsState()
+            val isCorrectCode = MainActivity.vm.isCorrectCode.collectAsState()
 
             player.handleMusicPlayback(
                 timeElapsed = timeElapsed.value,
@@ -88,16 +89,17 @@ fun HomeScreen(context: Context, code: String) {
             CustomTextFieldRow(
                 detonationCode = detonationCode.value,
                 isOver = isOver.value,
+                isCodeIncorrect = isIncorrectCode.value,
                 onIsOver = {
                     MainActivity.vm.reset {
                         text.value = ""
                         detonationCode.value = 8.generateCodeWithThisLength()
                     }
                 },
-                onCodeGuessed = {
+                onCorrectCode = {
                     if (MainActivity.vm.isPlaying.value) {
                         MainActivity.vm.stopCountDownTimer()
-                        MainActivity.vm.guessCorrect()
+                        MainActivity.vm.onCorrectCode()
                         player.prepareForPlayback {
                             player = context.createPlayer(
                                 R.raw.success
@@ -114,16 +116,17 @@ fun HomeScreen(context: Context, code: String) {
                         MainActivity.vm.startCountDownTimer()
                         text.value = ""
                     }
-                }
-            ) {
-                scope.launch {
-                    if (!MainActivity.vm.guessedWrong.value) {
-                        isShake.value = true
-                        MainActivity.vm.guessWrong()
-                        text.value = ""
+                },
+                onIncorrectCode = {
+                    scope.launch {
+                        if (!MainActivity.vm.isIncorrectCode.value) {
+                            isShake.value = true
+                            MainActivity.vm.onIncorrectCode()
+                            text.value = ""
+                        }
                     }
                 }
-            }
+            )
 
             Spacer(modifier = Modifier.height(50.dp))
 
@@ -135,11 +138,11 @@ fun HomeScreen(context: Context, code: String) {
                 }
             )
 
-            ImpossibleCodeMsg(guessedWrong = guessedWrong.value)
+            WrongCodeEnteredMsg(wrongEntry = isIncorrectCode.value)
 
             IsOverMsg(isOver = isOver.value)
 
-            GuessedCorrectMsg(guessedCorrect = guessedCorrect.value)
+            CorrectCodeMsg(isCodeCorrect = isCorrectCode.value)
 
             ResetButton(
                 isReset = isReset.value,
@@ -159,9 +162,10 @@ fun HomeScreen(context: Context, code: String) {
 fun CustomTextFieldRow(
     detonationCode: String,
     isOver: Boolean,
+    isCodeIncorrect: Boolean,
     onIsOver: () -> Unit,
-    onCodeGuessed: () -> Unit,
-    onCodeNotGuessed: () -> Unit
+    onCorrectCode: () -> Unit,
+    onIncorrectCode: () -> Unit
 ) {
     var textFieldsState by remember {
         mutableStateOf(
@@ -185,11 +189,23 @@ fun CustomTextFieldRow(
             CompositionLocalProvider(
                 LocalTextInputService provides null
             ) {
-                TextField(
+                OutlinedTextField(
                     value = text.value,
                     onValueChange = { newValue ->
-                        if (index == textFieldsState.lastIndex) {
-                            if (newValue.length <= 1) {
+                        if (!isCodeIncorrect) {
+                            if (index == textFieldsState.lastIndex) {
+                                if (newValue.length <= 1) {
+                                    textFieldsState = textFieldsState.toMutableList().also { list ->
+                                        list[index].value = newValue
+                                    }
+                                    handleFocus(
+                                        index = index,
+                                        value = newValue,
+                                        frList = frList,
+                                        textFieldsState = textFieldsState
+                                    )
+                                }
+                            } else {
                                 textFieldsState = textFieldsState.toMutableList().also { list ->
                                     list[index].value = newValue
                                 }
@@ -200,16 +216,6 @@ fun CustomTextFieldRow(
                                     textFieldsState = textFieldsState
                                 )
                             }
-                        } else {
-                            textFieldsState = textFieldsState.toMutableList().also { list ->
-                                list[index].value = newValue
-                            }
-                            handleFocus(
-                                index = index,
-                                value = newValue,
-                                frList = frList,
-                                textFieldsState = textFieldsState
-                            )
                         }
                     },
                     keyboardOptions = KeyboardOptions.Default.copy(
@@ -226,14 +232,14 @@ fun CustomTextFieldRow(
                                 )
                             } else {
                                 if (textFieldsState.getValue() == detonationCode.lowercase()) {
-                                    onCodeGuessed()
+                                    onCorrectCode()
                                     resetField(
                                         state = textFieldsState,
                                         list = frList
                                     )
 
                                 } else {
-                                    onCodeNotGuessed()
+                                    onIncorrectCode()
                                     resetField(
                                         state = textFieldsState,
                                         list = frList
@@ -242,12 +248,27 @@ fun CustomTextFieldRow(
                             }
                         }
                     ),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedTextColor = Color.Red,
+                        focusedContainerColor = Color.Black,
+
+                        unfocusedTextColor = Color.Red,
+                        unfocusedContainerColor = Color.Black,
+
+                        focusedLabelColor = Color.Red,
+                        unfocusedLabelColor = Color.Red,
+
+                        cursorColor = Color.Red,
+                        focusedBorderColor = Color.White,
+                        unfocusedBorderColor = Color.White
+                    ),
                     singleLine = true,
                     maxLines = 1,
                     modifier = Modifier
                         .focusRequester(frList[index])
                         .padding(start = 10.dp)
-                        .size(60.dp)
+                        .size(60.dp),
+                    isError = isCodeIncorrect
                 )
             }
         }
@@ -304,8 +325,8 @@ fun DetonationCodeBox(
 }
 
 @Composable
-fun ImpossibleCodeMsg(guessedWrong: Boolean) {
-    AnimatedVisibility(visible = guessedWrong) {
+fun WrongCodeEnteredMsg(wrongEntry: Boolean) {
+    AnimatedVisibility(visible = wrongEntry) {
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
             Spacer(modifier = Modifier.height(50.dp))
             Text(
@@ -337,8 +358,8 @@ fun IsOverMsg(isOver: Boolean) {
 }
 
 @Composable
-fun GuessedCorrectMsg(guessedCorrect: Boolean) {
-    AnimatedVisibility(visible = guessedCorrect) {
+fun CorrectCodeMsg(isCodeCorrect: Boolean) {
+    AnimatedVisibility(visible = isCodeCorrect) {
         Column {
             Spacer(modifier = Modifier.height(50.dp))
             Text(

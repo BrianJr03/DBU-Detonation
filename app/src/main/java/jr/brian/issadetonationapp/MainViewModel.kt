@@ -24,8 +24,8 @@ class MainViewModel : ViewModel() {
     val timeElapsed = MutableStateFlow(0)
     val countDownInterval = 1000L // 1 seconds is the lowest
 
-    val guessedCorrect = MutableStateFlow(false)
-    val guessedWrong = MutableStateFlow(false)
+    val isCorrectCode = MutableStateFlow(false)
+    val isIncorrectCode = MutableStateFlow(false)
 
     val isReset = MutableStateFlow(false)
     val isOver = MutableStateFlow(false)
@@ -39,14 +39,14 @@ class MainViewModel : ViewModel() {
         timeElapsed.value = 0
     }
 
-    suspend fun guessWrong() {
-        guessedWrong.value = true
+    suspend fun onIncorrectCode() {
+        isIncorrectCode.value = true
         delay(5000)
-        guessedWrong.value = false
+        isIncorrectCode.value = false
     }
 
-    fun guessCorrect() {
-        guessedCorrect.value = true
+    fun onCorrectCode() {
+        isCorrectCode.value = true
     }
 
     suspend fun startResetDelay() {
@@ -57,8 +57,8 @@ class MainViewModel : ViewModel() {
     fun reset(action: () -> Unit) {
         timerText.value = initialTotalTimeInMillis.timeFormat()
         isPlaying.value = false
-        guessedCorrect.value = false
-        guessedWrong.value = false
+        isCorrectCode.value = false
+        isIncorrectCode.value = false
         isReset.value = false
         isOver.value = false
         timeElapsed.value = 0
