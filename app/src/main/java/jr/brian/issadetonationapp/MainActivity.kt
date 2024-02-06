@@ -37,7 +37,6 @@ import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.RectangleShape
-import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalTextInputService
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.input.ImeAction
@@ -48,6 +47,7 @@ import jr.brian.issadetonationapp.ui.theme.borderStroke
 import jr.brian.issadetonationapp.ui.theme.createPlayer
 import jr.brian.issadetonationapp.ui.theme.generateCode
 import jr.brian.issadetonationapp.ui.theme.prepareForPlayback
+import jr.brian.issadetonationapp.ui.theme.shake
 import kotlinx.coroutines.launch
 
 class MainActivity : ComponentActivity() {
@@ -64,7 +64,8 @@ class MainActivity : ComponentActivity() {
                     modifier = Modifier.fillMaxSize(),
                     color = Color.Black
                 ) {
-                    var player = MediaPlayer.create(applicationContext, R.raw.intense)
+                    var player = MediaPlayer.create(applicationContext, R.raw.intense3)
+                    val isShake = remember { mutableStateOf(false) }
 
                     LazyColumn(
                         horizontalAlignment = Alignment.CenterHorizontally,
@@ -92,7 +93,10 @@ class MainActivity : ComponentActivity() {
                                 modifier = Modifier
                                     .border(borderStroke(Color.White), shape = RectangleShape)
                                     .background(Color.Black)
-                                    .width(200.dp),
+                                    .width(200.dp)
+                                    .shake(isShake.value) {
+                                        isShake.value = false
+                                    },
                                 contentAlignment = Alignment.Center
                             ) {
                                 Text(
@@ -106,9 +110,9 @@ class MainActivity : ComponentActivity() {
                             Spacer(modifier = Modifier.height(50.dp))
 
                             when (timeElapsed.value) {
-                                44 -> {
+                                45 -> {
                                     player.prepareForPlayback {
-                                        player = applicationContext.createPlayer(R.raw.war)
+                                        player = applicationContext.createPlayer(R.raw.intense)
                                         player.start()
                                     }
                                 }
@@ -155,8 +159,8 @@ class MainActivity : ComponentActivity() {
                                                     vm.guessCorrect()
                                                     player.prepareForPlayback {
                                                         player = applicationContext.createPlayer(
-                                                                R.raw.success
-                                                            )
+                                                            R.raw.success
+                                                        )
                                                         player.start()
                                                     }
                                                     scope.launch {
@@ -164,15 +168,18 @@ class MainActivity : ComponentActivity() {
                                                     }
                                                 } else {
                                                     player =
-                                                        applicationContext.createPlayer(R.raw.intense)
+                                                        applicationContext.createPlayer(R.raw.intense3)
                                                     player.start()
                                                     vm.startCountDownTimer()
                                                     text.value = ""
                                                 }
                                             } else {
                                                 scope.launch {
-                                                    vm.guessWrong()
-                                                    text.value = ""
+                                                    if (!vm.guessedWrong.value) {
+                                                        isShake.value = true
+                                                        vm.guessWrong()
+                                                        text.value = ""
+                                                    }
                                                 }
                                             }
                                         }
@@ -186,7 +193,10 @@ class MainActivity : ComponentActivity() {
                             Box(
                                 modifier = Modifier
                                     .border(borderStroke(Color.White), shape = RectangleShape)
-                                    .background(Color.Black),
+                                    .background(Color.Black)
+                                    .shake(isShake.value) {
+                                        isShake.value = false
+                                    },
                                 contentAlignment = Alignment.Center
                             ) {
                                 Text(

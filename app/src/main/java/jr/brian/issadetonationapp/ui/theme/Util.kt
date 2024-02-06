@@ -1,11 +1,22 @@
 package jr.brian.issadetonationapp.ui.theme
 
+import android.annotation.SuppressLint
 import android.content.Context
 import android.media.MediaPlayer
 import android.widget.Toast
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.repeatable
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.runtime.getValue
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.composed
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.platform.debugInspectorInfo
 import androidx.compose.ui.unit.dp
 
 fun generateCode(length: Int): String {
@@ -58,3 +69,27 @@ fun borderStroke(color: Color): BorderStroke {
         )
     )
 }
+
+@SuppressLint("ModifierFactoryUnreferencedReceiver")
+fun Modifier.shake(enabled: Boolean, onAnimationFinish: () -> Unit) = composed(
+    factory = {
+        val distance by animateFloatAsState(
+            targetValue = if (enabled) 15f else 0f,
+            animationSpec = repeatable(
+                iterations = 8,
+                animation = tween(durationMillis = 50, easing = LinearEasing),
+                repeatMode = RepeatMode.Reverse
+            ),
+            finishedListener = { onAnimationFinish.invoke() },
+            label = "shake"
+        )
+
+        Modifier.graphicsLayer {
+            translationX = if (enabled) distance else 0f
+        }
+    },
+    inspectorInfo = debugInspectorInfo {
+        name = "shake"
+        properties["enabled"] = enabled
+    }
+)
