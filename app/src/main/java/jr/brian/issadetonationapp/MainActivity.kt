@@ -11,7 +11,7 @@ import jr.brian.issadetonationapp.ui.theme.IssaDetonationAppTheme
 
 class MainActivity : ComponentActivity() {
     companion object {
-        val vm = CountDownTimerViewModel()
+        val vm = MainViewModel()
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {

@@ -5,13 +5,13 @@ import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import jr.brian.issadetonationapp.CountDownTimerViewModel.TimeFormatExt.timeFormat
+import jr.brian.issadetonationapp.MainViewModel.TimeFormatExt.timeFormat
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.launch
 import java.util.concurrent.TimeUnit
 
-class CountDownTimerViewModel : ViewModel() {
+class MainViewModel : ViewModel() {
 
     private var countDownTimer: CountDownTimer? = null
 
