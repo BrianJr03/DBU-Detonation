@@ -8,8 +8,8 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -22,12 +22,13 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
@@ -53,7 +54,6 @@ fun HomeScreen(context: Context, code: String) {
     ) {
         item {
             val scope = rememberCoroutineScope()
-            val focusRequester = remember { FocusRequester() }
             val text = rememberSaveable { mutableStateOf("") }
 
             val isOver = MainActivity.vm.isOver.collectAsState()
@@ -74,10 +74,6 @@ fun HomeScreen(context: Context, code: String) {
                 }
             )
 
-            LaunchedEffect(key1 = 1, block = {
-                focusRequester.requestFocus()
-            })
-
             Spacer(modifier = Modifier.height(30.dp))
 
             TimerBox(
@@ -89,12 +85,9 @@ fun HomeScreen(context: Context, code: String) {
 
             Spacer(modifier = Modifier.height(50.dp))
 
-            MyTextField(
-                value = text.value,
+            CustomTextFieldRow(
                 detonationCode = detonationCode.value,
                 isOver = isOver.value,
-                guessedWrong = guessedWrong.value,
-                focusRequester = focusRequester,
                 onIsOver = {
                     MainActivity.vm.reset {
                         text.value = ""
@@ -121,22 +114,16 @@ fun HomeScreen(context: Context, code: String) {
                         MainActivity.vm.startCountDownTimer()
                         text.value = ""
                     }
-                },
-                onCodeNotGuessed = {
-                    scope.launch {
-                        if (!MainActivity.vm.guessedWrong.value) {
-                            isShake.value = true
-                            MainActivity.vm.guessWrong()
-                            text.value = ""
-                        }
-                    }
-                },
-                onValueChange = {
-                    if (it.length <= 8 && !guessedWrong.value) {
-                        text.value = it
+                }
+            ) {
+                scope.launch {
+                    if (!MainActivity.vm.guessedWrong.value) {
+                        isShake.value = true
+                        MainActivity.vm.guessWrong()
+                        text.value = ""
                     }
                 }
-            )
+            }
 
             Spacer(modifier = Modifier.height(50.dp))
 
@@ -169,6 +156,105 @@ fun HomeScreen(context: Context, code: String) {
 }
 
 @Composable
+fun CustomTextFieldRow(
+    detonationCode: String,
+    isOver: Boolean,
+    onIsOver: () -> Unit,
+    onCodeGuessed: () -> Unit,
+    onCodeNotGuessed: () -> Unit
+) {
+    var textFieldsState by remember {
+        mutableStateOf(
+            listOf(
+                mutableStateOf(""),
+                mutableStateOf(""),
+                mutableStateOf(""),
+                mutableStateOf(""),
+                mutableStateOf(""),
+                mutableStateOf(""),
+                mutableStateOf(""),
+                mutableStateOf("")
+            )
+        )
+    }
+
+    val frList = remember { List(8) { FocusRequester() } }
+
+    Row {
+        textFieldsState.forEachIndexed { index, text ->
+            CompositionLocalProvider(
+                LocalTextInputService provides null
+            ) {
+                TextField(
+                    value = text.value,
+                    onValueChange = { newValue ->
+                        if (index == textFieldsState.lastIndex) {
+                            if (newValue.length <= 1) {
+                                textFieldsState = textFieldsState.toMutableList().also { list ->
+                                    list[index].value = newValue
+                                }
+                                handleFocus(
+                                    index = index,
+                                    value = newValue,
+                                    frList = frList,
+                                    textFieldsState = textFieldsState
+                                )
+                            }
+                        } else {
+                            textFieldsState = textFieldsState.toMutableList().also { list ->
+                                list[index].value = newValue
+                            }
+                            handleFocus(
+                                index = index,
+                                value = newValue,
+                                frList = frList,
+                                textFieldsState = textFieldsState
+                            )
+                        }
+                    },
+                    keyboardOptions = KeyboardOptions.Default.copy(
+                        imeAction = if (index == textFieldsState.lastIndex)
+                            ImeAction.Done else ImeAction.Next
+                    ),
+                    keyboardActions = KeyboardActions(
+                        onDone = {
+                            if (isOver) {
+                                onIsOver()
+                                resetField(
+                                    state = textFieldsState,
+                                    list = frList
+                                )
+                            } else {
+                                if (textFieldsState.getValue() == detonationCode.lowercase()) {
+                                    onCodeGuessed()
+                                    resetField(
+                                        state = textFieldsState,
+                                        list = frList
+                                    )
+
+                                } else {
+                                    onCodeNotGuessed()
+                                    resetField(
+                                        state = textFieldsState,
+                                        list = frList
+                                    )
+                                }
+                            }
+                        }
+                    ),
+                    singleLine = true,
+                    maxLines = 1,
+                    modifier = Modifier
+                        .focusRequester(frList[index])
+                        .padding(start = 10.dp)
+                        .size(60.dp)
+                )
+            }
+        }
+    }
+}
+
+@Composable
 fun TimerBox(
     isShake: Boolean,
     onShakeFinished: () -> Unit
@@ -188,55 +274,6 @@ fun TimerBox(
             color = Color.Red,
             style = TextStyle(fontSize = 50.sp),
             modifier = Modifier.padding(10.dp)
-        )
-    }
-}
-
-@Composable
-fun MyTextField(
-    value: String,
-    detonationCode: String,
-    isOver: Boolean,
-    guessedWrong: Boolean,
-    focusRequester: FocusRequester,
-    onIsOver: () -> Unit,
-    onCodeGuessed: () -> Unit,
-    onCodeNotGuessed: () -> Unit,
-    onValueChange: (String) -> Unit
-) {
-    CompositionLocalProvider(
-        LocalTextInputService provides null
-    ) {
-        TextField(
-            value = value,
-            maxLines = 1,
-            label = {
-                Text(text = "Enter Code")
-            },
-            onValueChange = {
-                onValueChange(it)
-
-            },
-            textStyle = TextStyle(fontSize = 50.sp),
-            modifier = Modifier
-                .padding(start = 40.dp, end = 40.dp)
-                .fillMaxWidth()
-                .focusRequester(focusRequester),
-            keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
-            keyboardActions = KeyboardActions(onDone = {
-                if (isOver) {
-                    onIsOver()
-                } else {
-                    if (value.lowercase() == detonationCode.lowercase()) {
-                        onCodeGuessed()
-
-                    } else {
-                        onCodeNotGuessed()
-
-                    }
-                }
-            }),
-            isError = guessedWrong
         )
     }
 }
