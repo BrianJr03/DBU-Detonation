@@ -1,4 +1,4 @@
-package jr.brian.issadetonationapp
+package jr.brian.issadetonationapp.screens
 
 import android.content.Context
 import androidx.compose.animation.AnimatedVisibility
@@ -42,10 +42,28 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import jr.brian.issadetonationapp.DEFAULT_FONT_SIZE
+import jr.brian.issadetonationapp.DEFAULT_FONT_SIZE_LARGE
+import jr.brian.issadetonationapp.DEFAULT_FONT_SIZE_SMALL
+import jr.brian.issadetonationapp.DEFAULT_VERTICAL_SPACING
+import jr.brian.issadetonationapp.MainActivity
+import jr.brian.issadetonationapp.R
+import jr.brian.issadetonationapp.borderStroke
+import jr.brian.issadetonationapp.createPlayer
+import jr.brian.issadetonationapp.generateCodeWithThisLength
+import jr.brian.issadetonationapp.getValue
+import jr.brian.issadetonationapp.handleFocus
+import jr.brian.issadetonationapp.prepareForPlayback
+import jr.brian.issadetonationapp.resetField
+import jr.brian.issadetonationapp.shake
 import kotlinx.coroutines.launch
 
 @Composable
-fun HomeScreen(context: Context, code: String) {
+fun GameScreen(
+    context: Context,
+    code: String,
+    onNavToHome: () -> Unit
+) {
     var player = context.createPlayer(R.raw.countdown)
     val isShake = remember { mutableStateOf(false) }
     val detonationCode = rememberSaveable { mutableStateOf(code) }
@@ -91,6 +109,7 @@ fun HomeScreen(context: Context, code: String) {
                     MainActivity.vm.reset {
                         text.value = ""
                         detonationCode.value = 8.generateCodeWithThisLength()
+                        onNavToHome()
                     }
                 },
                 onCorrectCode = {
@@ -105,6 +124,7 @@ fun HomeScreen(context: Context, code: String) {
                         }
                         scope.launch {
                             MainActivity.vm.startResetDelay()
+                            onNavToHome()
                         }
                     } else {
                         player.prepareForPlayback {
@@ -154,6 +174,7 @@ fun HomeScreen(context: Context, code: String) {
                     MainActivity.vm.reset {
                         text.value = ""
                         detonationCode.value = 8.generateCodeWithThisLength()
+                        onNavToHome()
                     }
                 }
             )
@@ -288,6 +309,10 @@ fun CustomTextFieldRow(
                 )
             }
         }
+
+        LaunchedEffect(key1 = 1, block = {
+            frList.firstOrNull()?.requestFocus()
+        })
     }
 }
 
@@ -396,7 +421,7 @@ fun ResetButton(
     isOver: Boolean,
     onClick: () -> Unit
 ) {
-    AnimatedVisibility(visible = isReset || isOver) {
+    AnimatedVisibility(visible = isOver) {
         Column {
             if (isReset) {
                 Spacer(modifier = Modifier.height(10.dp))

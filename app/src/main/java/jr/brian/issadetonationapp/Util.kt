@@ -11,6 +11,10 @@ val DEFAULT_FONT_SIZE_LARGE = 50.sp
 
 val DEFAULT_VERTICAL_SPACING = 30.dp
 
+const val GAME_SCREEN_ROUTE = "game"
+const val HOME_SCREEN_ROUTE = "home"
+const val SETTINGS_SCREEN_ROUTE = "settings"
+
 fun List<MutableState<String>>.getValue() : String {
     var str = ""
     this.onEach {
