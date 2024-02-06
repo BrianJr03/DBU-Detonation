@@ -77,6 +77,7 @@ class MainViewModel : ViewModel() {
 
             override fun onFinish() {
                 isPlaying.value = false
+                isOver.value = true
             }
         }.start()
     }

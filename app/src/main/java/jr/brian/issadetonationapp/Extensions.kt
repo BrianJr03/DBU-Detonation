@@ -51,10 +51,10 @@ fun Context.createPlayer(media: Int): MediaPlayer {
     return MediaPlayer.create(this, media)
 }
 
-fun MediaPlayer.prepareForPlayback(action: () -> Unit) {
+fun MediaPlayer.prepareForPlayback(onPrepared: () -> Unit) {
     stop()
     release()
-    action()
+    onPrepared()
 }
 
 fun Color.borderStroke(): BorderStroke {
@@ -93,6 +93,7 @@ fun Modifier.shake(enabled: Boolean, onAnimationFinish: () -> Unit) = composed(
     }
 )
 
+@Suppress("unused")
 fun MediaPlayer.handleMusicPlayback(
     timeElapsed: Int,
     onPreparedForFirstPlayBack: () -> Unit,

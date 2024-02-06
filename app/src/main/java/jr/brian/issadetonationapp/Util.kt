@@ -2,6 +2,14 @@ package jr.brian.issadetonationapp
 
 import androidx.compose.runtime.MutableState
 import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+
+val DEFAULT_FONT_SIZE = 30.sp
+val DEFAULT_FONT_SIZE_SMALL = 25.sp
+val DEFAULT_FONT_SIZE_LARGE = 50.sp
+
+val DEFAULT_VERTICAL_SPACING = 30.dp
 
 fun List<MutableState<String>>.getValue() : String {
     var str = ""

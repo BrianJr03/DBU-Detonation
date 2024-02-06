@@ -1,7 +1,6 @@
 package jr.brian.issadetonationapp
 
 import android.content.Context
-import android.media.MediaPlayer
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -17,12 +16,13 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.material3.Button
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -32,6 +32,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
@@ -45,9 +46,9 @@ import kotlinx.coroutines.launch
 
 @Composable
 fun HomeScreen(context: Context, code: String) {
-    var player = MediaPlayer.create(context, R.raw.intense3)
+    var player = context.createPlayer(R.raw.countdown)
     val isShake = remember { mutableStateOf(false) }
-    val detonationCode = remember { mutableStateOf(code) }
+    val detonationCode = rememberSaveable { mutableStateOf(code) }
 
     LazyColumn(
         horizontalAlignment = Alignment.CenterHorizontally,
@@ -59,21 +60,17 @@ fun HomeScreen(context: Context, code: String) {
 
             val isOver = MainActivity.vm.isOver.collectAsState()
             val isReset = MainActivity.vm.isReset.collectAsState()
-            val timeElapsed = MainActivity.vm.timeElapsed.collectAsState()
+
+            LaunchedEffect(key1 = 4, block = {
+                MainActivity.vm.timeElapsed.collect {
+                    if (it == 60) {
+                        MainActivity.vm.setIsOver(true)
+                    }
+                }
+            })
+
             val isIncorrectCode = MainActivity.vm.isIncorrectCode.collectAsState()
             val isCorrectCode = MainActivity.vm.isCorrectCode.collectAsState()
-
-            player.handleMusicPlayback(
-                timeElapsed = timeElapsed.value,
-                onPreparedForFirstPlayBack = {
-                    player = context.createPlayer(R.raw.intense)
-                    player.start()
-                },
-                onPreparedForSecondPlayBack = {
-                    player = context.createPlayer(R.raw.explosion)
-                    player.start()
-                }
-            )
 
             Spacer(modifier = Modifier.height(30.dp))
 
@@ -102,7 +99,7 @@ fun HomeScreen(context: Context, code: String) {
                         MainActivity.vm.onCorrectCode()
                         player.prepareForPlayback {
                             player = context.createPlayer(
-                                R.raw.success
+                                R.raw.defused
                             )
                             player.start()
                         }
@@ -110,9 +107,12 @@ fun HomeScreen(context: Context, code: String) {
                             MainActivity.vm.startResetDelay()
                         }
                     } else {
-                        player =
-                            context.createPlayer(R.raw.intense3)
-                        player.start()
+                        player.prepareForPlayback {
+                            player = context.createPlayer(
+                                R.raw.countdown
+                            )
+                            player.start()
+                        }
                         MainActivity.vm.startCountDownTimer()
                         text.value = ""
                     }
@@ -142,7 +142,10 @@ fun HomeScreen(context: Context, code: String) {
 
             IsOverMsg(isOver = isOver.value)
 
-            CorrectCodeMsg(isCodeCorrect = isCorrectCode.value)
+            CorrectCodeMsg(
+                isCodeCorrect = isCorrectCode.value,
+                isReset = isReset.value
+            )
 
             ResetButton(
                 isReset = isReset.value,
@@ -184,19 +187,30 @@ fun CustomTextFieldRow(
 
     val frList = remember { List(8) { FocusRequester() } }
 
+    LaunchedEffect(key1 = 1, block = {
+        MainActivity.vm.isReset.collect {
+            if (it) {
+                resetField(
+                    state = textFieldsState,
+                    list = frList
+                )
+            }
+        }
+    })
+
     Row {
         textFieldsState.forEachIndexed { index, text ->
             CompositionLocalProvider(
                 LocalTextInputService provides null
             ) {
                 OutlinedTextField(
-                    value = text.value,
+                    value = text.value.uppercase(),
                     onValueChange = { newValue ->
                         if (!isCodeIncorrect) {
                             if (index == textFieldsState.lastIndex) {
                                 if (newValue.length <= 1) {
                                     textFieldsState = textFieldsState.toMutableList().also { list ->
-                                        list[index].value = newValue
+                                        list[index].value = newValue.uppercase()
                                     }
                                     handleFocus(
                                         index = index,
@@ -231,7 +245,9 @@ fun CustomTextFieldRow(
                                     list = frList
                                 )
                             } else {
-                                if (textFieldsState.getValue() == detonationCode.lowercase()) {
+                                if (textFieldsState.getValue()
+                                        .equals(detonationCode.lowercase(), ignoreCase = true)
+                                ) {
                                     onCorrectCode()
                                     resetField(
                                         state = textFieldsState,
@@ -293,7 +309,7 @@ fun TimerBox(
         Text(
             MainActivity.vm.timerText.value,
             color = Color.Red,
-            style = TextStyle(fontSize = 50.sp),
+            style = TextStyle(fontSize = DEFAULT_FONT_SIZE_LARGE),
             modifier = Modifier.padding(10.dp)
         )
     }
@@ -318,7 +334,7 @@ fun DetonationCodeBox(
             detonationCode,
             color = Color.Red,
             letterSpacing = 20.sp,
-            style = TextStyle(fontSize = 50.sp),
+            style = TextStyle(fontSize = DEFAULT_FONT_SIZE_LARGE),
             modifier = Modifier.padding(20.dp)
         )
     }
@@ -328,16 +344,16 @@ fun DetonationCodeBox(
 fun WrongCodeEnteredMsg(wrongEntry: Boolean) {
     AnimatedVisibility(visible = wrongEntry) {
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            Spacer(modifier = Modifier.height(50.dp))
+            Spacer(modifier = Modifier.height(DEFAULT_VERTICAL_SPACING))
             Text(
                 text = "Incorrect Code",
                 color = Color.Red,
-                style = TextStyle(fontSize = 40.sp)
+                style = TextStyle(fontSize = DEFAULT_FONT_SIZE)
             )
             Text(
                 text = "Locked for 5 seconds",
                 color = Color.Red,
-                style = TextStyle(fontSize = 35.sp)
+                style = TextStyle(fontSize = DEFAULT_FONT_SIZE_SMALL)
             )
         }
     }
@@ -347,25 +363,28 @@ fun WrongCodeEnteredMsg(wrongEntry: Boolean) {
 fun IsOverMsg(isOver: Boolean) {
     AnimatedVisibility(visible = isOver) {
         Column {
-            Spacer(modifier = Modifier.height(50.dp))
+            Spacer(modifier = Modifier.height(DEFAULT_VERTICAL_SPACING))
             Text(
                 text = "Device Destroyed",
                 color = Color.Red,
-                style = TextStyle(fontSize = 40.sp)
+                style = TextStyle(fontSize = DEFAULT_FONT_SIZE)
             )
         }
     }
 }
 
 @Composable
-fun CorrectCodeMsg(isCodeCorrect: Boolean) {
-    AnimatedVisibility(visible = isCodeCorrect) {
+fun CorrectCodeMsg(
+    isCodeCorrect: Boolean,
+    isReset: Boolean
+) {
+    AnimatedVisibility(visible = isCodeCorrect && !isReset) {
         Column {
-            Spacer(modifier = Modifier.height(50.dp))
+            Spacer(modifier = Modifier.height(DEFAULT_VERTICAL_SPACING))
             Text(
                 text = "Device Disarmed",
                 color = Color.Green,
-                style = TextStyle(fontSize = 40.sp)
+                style = TextStyle(fontSize = DEFAULT_FONT_SIZE)
             )
         }
     }
@@ -379,13 +398,15 @@ fun ResetButton(
 ) {
     AnimatedVisibility(visible = isReset || isOver) {
         Column {
-            Spacer(modifier = Modifier.height(50.dp))
-            Button(
-                modifier = Modifier.size(100.dp),
+            if (isReset) {
+                Spacer(modifier = Modifier.height(10.dp))
+            }
+            TextButton(
+                modifier = Modifier.clip(RectangleShape),
                 onClick = {
                     onClick()
                 }) {
-                Text(text = "Reset")
+                Text(text = "Reset", fontSize = DEFAULT_FONT_SIZE, color = Color.Red)
             }
         }
     }
