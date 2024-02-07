@@ -125,6 +125,7 @@ fun GameScreen(
                         scope.launch {
                             MainActivity.vm.startResetDelay()
                             MainActivity.vm.reset {
+                                detonationCode.value = 8.generateCodeWithThisLength()
                                 onNavToHome()
                             }
                         }
