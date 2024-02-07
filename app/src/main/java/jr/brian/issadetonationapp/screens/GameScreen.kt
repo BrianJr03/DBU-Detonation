@@ -42,6 +42,7 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import jr.brian.issadetonationapp.CODE_DIGIT_COUNT
 import jr.brian.issadetonationapp.DEFAULT_FONT_SIZE
 import jr.brian.issadetonationapp.DEFAULT_FONT_SIZE_LARGE
 import jr.brian.issadetonationapp.DEFAULT_FONT_SIZE_SMALL
@@ -108,7 +109,7 @@ fun GameScreen(
                 onIsOver = {
                     MainActivity.vm.reset {
                         text.value = ""
-                        detonationCode.value = 8.generateCodeWithThisLength()
+                        detonationCode.value = CODE_DIGIT_COUNT.generateCodeWithThisLength()
                         onNavToHome()
                     }
                 },
@@ -125,7 +126,7 @@ fun GameScreen(
                         scope.launch {
                             MainActivity.vm.startResetDelay()
                             MainActivity.vm.reset {
-                                detonationCode.value = 8.generateCodeWithThisLength()
+                                detonationCode.value = CODE_DIGIT_COUNT.generateCodeWithThisLength()
                                 onNavToHome()
                             }
                         }
@@ -176,7 +177,7 @@ fun GameScreen(
                 onClick = {
                     MainActivity.vm.reset {
                         text.value = ""
-                        detonationCode.value = 8.generateCodeWithThisLength()
+                        detonationCode.value = CODE_DIGIT_COUNT.generateCodeWithThisLength()
                         onNavToHome()
                     }
                 }

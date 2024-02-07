@@ -26,7 +26,6 @@ class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        val code = 8.generateCodeWithThisLength()
         val dataStore = AppDataStore(this)
         setContent {
             IssaDetonationAppTheme {
@@ -46,7 +45,6 @@ class MainActivity : ComponentActivity() {
                             ?: ""
 
                     App(
-                        code = code,
                         savedSoundPath = savedSoundPath,
                         savedMinutes = savedMinutes,
                         savedSeconds = savedSeconds,
@@ -60,7 +58,6 @@ class MainActivity : ComponentActivity() {
 
 @Composable
 fun Context.App(
-    code: String,
     savedSoundPath: String,
     savedMinutes: String,
     savedSeconds: String,
@@ -86,7 +83,7 @@ fun Context.App(
                     }
                     GameScreen(
                         context = this@App,
-                        code = code,
+                        code = CODE_DIGIT_COUNT.generateCodeWithThisLength(),
                         onNavToHome = {
                             navController.navigate(HOME_SCREEN_ROUTE) {
                                 launchSingleTop = true

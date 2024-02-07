@@ -15,6 +15,8 @@ const val GAME_SCREEN_ROUTE = "game"
 const val HOME_SCREEN_ROUTE = "home"
 const val SETTINGS_SCREEN_ROUTE = "settings"
 
+const val CODE_DIGIT_COUNT = 8
+
 fun List<MutableState<String>>.getValue() : String {
     var str = ""
     this.onEach {
