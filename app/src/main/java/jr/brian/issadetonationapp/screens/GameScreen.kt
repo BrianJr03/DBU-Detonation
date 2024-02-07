@@ -124,7 +124,9 @@ fun GameScreen(
                         }
                         scope.launch {
                             MainActivity.vm.startResetDelay()
-                            onNavToHome()
+                            MainActivity.vm.reset {
+                                onNavToHome()
+                            }
                         }
                     } else {
                         player.prepareForPlayback {
